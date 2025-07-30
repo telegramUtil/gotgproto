@@ -178,6 +178,59 @@ type ClientOpts struct {
 	NoUpdates bool
 }
 
+func NewClientWithStorageDispatcher(appId int, apiHash string, cType clientType, d dispatcher.Dispatcher, peerStorage *storage.PeerStorage, sessionStorage telegram.SessionStorage, opts *ClientOpts) (*Client, error) {
+	if opts == nil {
+		opts = &ClientOpts{
+			SystemLangCode: "en",
+			ClientLangCode: "en",
+		}
+	}
+
+	if opts.Context == nil {
+		opts.Context = context.Background()
+	}
+	ctx, cancel := context.WithCancel(opts.Context)
+
+	if opts.AuthConversator == nil {
+		opts.AuthConversator = BasicConversator()
+	}
+
+	c := Client{
+		Resolver:          opts.Resolver,
+		PublicKeys:        opts.PublicKeys,
+		DC:                opts.DC,
+		DCList:            opts.DCList,
+		MigrationTimeout:  opts.MigrationTimeout,
+		AckBatchSize:      opts.AckBatchSize,
+		AckInterval:       opts.AckInterval,
+		RetryInterval:     opts.RetryInterval,
+		MaxRetries:        opts.MaxRetries,
+		ExchangeTimeout:   opts.ExchangeTimeout,
+		DialTimeout:       opts.DialTimeout,
+		CompressThreshold: opts.CompressThreshold,
+		DisableCopyright:  opts.DisableCopyright,
+		Logger:            opts.Logger,
+		SystemLangCode:    opts.SystemLangCode,
+		ClientLangCode:    opts.ClientLangCode,
+		NoAutoAuth:        opts.NoAutoAuth,
+		NoUpdates:         opts.NoUpdates,
+		authConversator:   opts.AuthConversator,
+		Dispatcher:        d,
+		PeerStorage:       peerStorage,
+		sessionStorage:    sessionStorage,
+		clientType:        cType,
+		ctx:               ctx,
+		autoFetchReply:    opts.AutoFetchReply,
+		cancel:            cancel,
+		appId:             appId,
+		apiHash:           apiHash,
+	}
+
+	c.printCredit()
+
+	return &c, c.Start(opts)
+}
+
 // NewClient creates a new gotgproto client and logs in to telegram.
 func NewClient(appId int, apiHash string, cType clientType, opts *ClientOpts) (*Client, error) {
 	if opts == nil {
