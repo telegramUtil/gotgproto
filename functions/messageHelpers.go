@@ -16,7 +16,7 @@ func GetMessages(ctx context.Context, raw *tg.Client, p *storage.PeerStorage, ch
 	switch storage.EntityType(peer.Type) {
 	case storage.TypeChannel:
 		return GetChannelMessages(ctx, raw, p, &tg.InputChannel{
-			ChannelID:  peer.ID,
+			ChannelID:  peer.GetID(),
 			AccessHash: peer.AccessHash,
 		}, mids)
 	default:

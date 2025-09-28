@@ -5,7 +5,7 @@ go 1.23.3
 toolchain go1.23.4
 
 require (
-	github.com/celestix/gotgproto v1.0.0-beta19
+	github.com/celestix/gotgproto v1.0.0-beta21
 	github.com/gotd/contrib v0.21.0
 	github.com/gotd/td v0.127.0
 	golang.org/x/time v0.9.0
@@ -58,7 +58,6 @@ require (
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.8.2 // indirect
 	modernc.org/sqlite v1.34.4 // indirect
-	nhooyr.io/websocket v1.8.17 // indirect
 	rsc.io/qr v0.2.0 // indirect
 )
 

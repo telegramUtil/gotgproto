@@ -60,7 +60,7 @@ func GetNewUpdate(ctx context.Context, client *tg.Client, selfUserId int64, p *s
 						p.AddPeer(chat.ID, storage.DefaultAccessHash, storage.TypeChat, storage.DefaultUsername)
 					case *tg.Channel:
 						e.Channels[chat.ID] = chat
-						if p.GetPeerById(chat.ID) != nil || chat.Min {
+						if chat.Min || p.GetPeerById(chat.ID) != nil {
 							continue
 						}
 						p.AddPeer(chat.ID, chat.AccessHash, storage.TypeChannel, chat.Username)
@@ -72,7 +72,7 @@ func GetNewUpdate(ctx context.Context, client *tg.Client, selfUserId int64, p *s
 						continue
 					}
 					e.Users[user.ID] = user
-					if p.GetPeerById(user.ID) != nil || user.Min {
+					if user.Min || p.GetPeerById(user.ID) != nil {
 						continue
 					}
 					p.AddPeer(user.ID, user.AccessHash, storage.TypeUser, user.Username)
@@ -226,9 +226,12 @@ func (u *Update) EffectiveChat() types.EffectiveChat {
 }
 
 func (u *Update) fillUserIdFromMessage(selfUserId int64) {
-	if m := u.EffectiveMessage; m != nil && m.FromID != nil {
-		userPeer, ok := m.FromID.(*tg.PeerUser)
-		if ok {
+	if m := u.EffectiveMessage; m != nil {
+		if userPeer, ok := m.FromID.(*tg.PeerUser); ok {
+			u.userId = userPeer.UserID
+			return
+		}
+		if userPeer, ok := m.PeerID.(*tg.PeerUser); ok {
 			u.userId = userPeer.UserID
 			return
 		}
