@@ -237,6 +237,10 @@ func NewClientWithStorageDispatcher(appId int, apiHash string, cType clientType,
 		apiHash:           apiHash,
 	}
 
+	if opts.SendCodeOptions != nil {
+		c.sendCodeOptions = *opts.SendCodeOptions
+	}
+
 	c.printCredit()
 
 	return &c, c.Start(opts)
