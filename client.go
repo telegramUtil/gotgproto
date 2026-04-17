@@ -25,7 +25,7 @@ import (
 	"go.uber.org/zap"
 )
 
-const VERSION = "v1.0.0-beta21"
+const VERSION = "v1.0.0-beta22"
 
 type Client struct {
 	// Dispatcher handlers the incoming updates and execute mapped handlers. It is recommended to use dispatcher.MakeDispatcher function for this field.
@@ -83,6 +83,7 @@ type Client struct {
 	NoUpdates bool
 
 	authConversator AuthConversator
+	sendCodeOptions auth.SendCodeOptions
 	clientType      clientType
 	ctx             context.Context
 	err             error
@@ -90,8 +91,9 @@ type Client struct {
 	cancel          context.CancelFunc
 	running         bool
 	*telegram.Client
-	appId   int
-	apiHash string
+	appId        int
+	apiHash      string
+	deviceParams tg.JSONValueClass
 }
 
 type ClientOpts struct {
@@ -176,12 +178,14 @@ type ClientOpts struct {
 	NoAutoAuth bool
 	// NoUpdates is a flag to disable updates.
 	NoUpdates bool
+	// SendCodeOptions allows overriding AuthSendCode behavior.
+	SendCodeOptions *auth.SendCodeOptions
 	// Only usable by Users not bots
-	// PeersFromDialogs is a flag to enable adding peers fetched 
-	// from dialogs to memory/database on startup 
+	// PeersFromDialogs is a flag to enable adding peers fetched
+	// from dialogs to memory/database on startup
 	PeersFromDialogs bool
 	// WaitOnPeersFromDialogs is a flag to enable waiting on
-	// PeersFromDialogs to complete during client start 
+	// PeersFromDialogs to complete during client start
 	WaitOnPeersFromDialogs bool
 }
 
@@ -295,6 +299,10 @@ func NewClient(appId int, apiHash string, cType clientType, opts *ClientOpts) (*
 		apiHash:           apiHash,
 	}
 
+	if opts.SendCodeOptions != nil {
+		c.sendCodeOptions = *opts.SendCodeOptions
+	}
+
 	c.printCredit()
 
 	return &c, c.Start(opts)
@@ -313,6 +321,7 @@ func (c *Client) initTelegramClient(
 			LangCode:       c.ClientLangCode,
 		}
 	}
+	c.deviceParams = device.Params
 	c.Client = telegram.NewClient(c.appId, c.apiHash, telegram.Options{
 		DCList:            c.DCList,
 		Resolver:          c.Resolver,
@@ -348,11 +357,23 @@ func (c *Client) login() error {
 		if c.NoAutoAuth {
 			return intErrors.ErrSessionUnauthorized
 		}
+		var flowClient auth.FlowClient = authClient
+		if solver, ok := c.authConversator.(RecaptchaSolver); ok {
+			flowClient = FlowClient{
+				FlowClient: authClient,
+				api:        c.API(),
+				appID:      c.appId,
+				apiHash:    c.apiHash,
+				params:     c.deviceParams,
+				solver:     solver,
+			}
+		}
 		err = authFlow(
-			c.ctx, authClient,
+			c.ctx,
+			flowClient,
 			c.authConversator,
 			c.clientType.getValue(),
-			auth.SendCodeOptions{},
+			c.sendCodeOptions,
 		)
 		if err != nil {
 			return errors.Wrap(err, "auth flow")
